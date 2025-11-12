@@ -1,0 +1,202 @@
+#include <stdio.h>
+#include <string.h>
+#include <strings.h>  
+#include <ctype.h>
+
+#define numOfSubjects 4
+#define numOfStudents 10
+
+// Student record structure
+struct Student {
+    char FirstName[50];
+    char LastName[50];
+    int StudentID;
+    float SubjectMarks[numOfSubjects];
+    int AggregateMarks;
+    char Grade[12];
+};
+
+// Function declarations
+void calculateAggregateAndGrade(struct Student s[], int idx);
+int enroll(struct Student s[], int n);
+void searchOrUpdate(struct Student s[], int n);
+void showTopStudents(struct Student s[], int n);
+
+int main() {
+    struct Student s[numOfStudents];
+    int n = 0, opt;
+
+    // Initialize all student records
+    for (int i = 0; i < numOfStudents; ++i) {
+        s[i].StudentID = -1;
+        for (int j = 0; j < numOfSubjects; ++j)
+            s[i].SubjectMarks[j] = -1;
+        s[i].AggregateMarks = -1;
+        strcpy(s[i].Grade, "undefined");
+    }
+
+    // Menu
+    while (1) {
+        printf("\n MENU \n");
+        printf("1. Enroll new student\n");
+        printf("2. Search or Update record\n");
+        printf("3. Display top students\n");
+        printf("4. Exit\nSelect option: ");
+        scanf("%d", &opt);
+
+        if (opt == 1)
+            n = enroll(s, n);
+        else if (opt == 2)
+            searchOrUpdate(s, n);
+        else if (opt == 3)
+            showTopStudents(s, n);
+        else
+            break;
+    }
+
+    return 0;
+}
+
+// average marks and assign grade
+void calculateAggregateAndGrade(struct Student s[], int idx) {
+    int total = 0, valid = 1;
+
+    for (int i = 0; i < numOfSubjects; ++i) {
+        if (s[idx].SubjectMarks[i] < 0) {
+            valid = 0;
+            break;
+        }
+        total += (int)s[idx].SubjectMarks[i];
+    }
+
+    if (valid) {
+        s[idx].AggregateMarks = total / numOfSubjects;
+
+        if (s[idx].AggregateMarks >= 85)
+            strcpy(s[idx].Grade, "HD");
+        else if (s[idx].AggregateMarks >= 75)
+            strcpy(s[idx].Grade, "D");
+        else if (s[idx].AggregateMarks >= 65)
+            strcpy(s[idx].Grade, "C");
+        else if (s[idx].AggregateMarks >= 50)
+            strcpy(s[idx].Grade, "P");
+        else
+            strcpy(s[idx].Grade, "F");
+    } else {
+        s[idx].AggregateMarks = -1;
+        strcpy(s[idx].Grade, "undefined");
+    }
+}
+
+// Add a new student record
+int enroll(struct Student s[], int n) {
+    if (n >= numOfStudents) {
+        printf("Enrollment limit reached!\n");
+        return n;
+    }
+
+    printf("Enter first name: ");
+    scanf("%s", s[n].FirstName);
+    printf("Enter last name: ");
+    scanf("%s", s[n].LastName);
+    printf("Enter student ID: ");
+    scanf("%d", &s[n].StudentID);
+
+    for (int i = 0; i < numOfSubjects; ++i) {
+        printf("Enter mark for subject %d (-1 to skip): ", i + 1);
+        scanf("%f", &s[n].SubjectMarks[i]);
+    }
+
+    calculateAggregateAndGrade(s, n);
+    printf("Student added! Aggregate: %d, Grade: %s\n", s[n].AggregateMarks, s[n].Grade);
+
+    return n + 1;
+}
+
+// Search and update an existing record
+void searchOrUpdate(struct Student s[], int n) {
+    int choice, id, pos = -1;
+    char lname[50];
+
+    printf("Search by: 1. Student ID  2. Last Name : ");
+    scanf("%d", &choice);
+
+    if (choice == 1) {
+        printf("Enter Student ID: ");
+        scanf("%d", &id);
+        for (int i = 0; i < n; ++i)
+            if (s[i].StudentID == id) { pos = i; break; }
+    } else {
+        printf("Enter Last Name: ");
+        scanf("%s", lname);
+        for (int i = 0; i < n; ++i)
+            if (strcasecmp(s[i].LastName, lname) == 0) { pos = i; break; }
+    }
+
+    if (pos == -1) {
+        printf("Record not found.\n");
+        return;
+    }
+
+    printf("\n--- Student Found ---\n");
+    printf("%s %s (ID: %d)\n", s[pos].FirstName, s[pos].LastName, s[pos].StudentID);
+    for (int i = 0; i < numOfSubjects; ++i)
+        printf("Subject %d: %.1f  ", i + 1, s[pos].SubjectMarks[i]);
+    printf("\nAggregate: %d, Grade: %s\n", s[pos].AggregateMarks, s[pos].Grade);
+
+    char updateOpt;
+    printf("Would you like to update this record? (y/n): ");
+    scanf(" %c", &updateOpt);
+
+    if (updateOpt == 'y' || updateOpt == 'Y') {
+        printf("1. First Name  2. Last Name  3. Student ID  4. Subject Marks\nSelect field: ");
+        int field;
+        scanf("%d", &field);
+
+        switch (field) {
+            case 1:
+                printf("Enter new first name: ");
+                scanf("%s", s[pos].FirstName);
+                break;
+            case 2:
+                printf("Enter new last name: ");
+                scanf("%s", s[pos].LastName);
+                break;
+            case 3:
+                printf("Enter new student ID: ");
+                scanf("%d", &s[pos].StudentID);
+                break;
+            case 4:
+                for (int i = 0; i < numOfSubjects; ++i) {
+                    printf("Subject %d current: %.1f → new mark (-1 to keep): ", i + 1, s[pos].SubjectMarks[i]);
+                    float newVal;
+                    scanf("%f", &newVal);
+                    if (newVal >= 0)
+                        s[pos].SubjectMarks[i] = newVal;
+                }
+                break;
+            default:
+                printf("Invalid option.\n");
+        }
+        calculateAggregateAndGrade(s, pos);
+    }
+}
+
+// Display students with the highest aggregate score
+void showTopStudents(struct Student s[], int n) {
+    if (n == 0) {
+        printf("No records available.\n");
+        return;
+    }
+
+    int maxAgg = -1;
+    for (int i = 0; i < n; ++i)
+        if (s[i].AggregateMarks > maxAgg)
+            maxAgg = s[i].AggregateMarks;
+
+    printf("\nTop performer(s) with %d aggregate:\n", maxAgg);
+    for (int i = 0; i < n; ++i)
+        if (s[i].AggregateMarks == maxAgg)
+            printf("%s %s (ID:%d)  Grade:%s\n",
+                   s[i].FirstName, s[i].LastName, s[i].StudentID, s[i].Grade);
+}
